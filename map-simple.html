@@ -36,6 +36,8 @@
     <div id="floating-panel">
     <b>Start: </b>
     <select id="start">
+      <option value="UBC, Vancouver">UBC</option>
+      <option value="3761 Kincaid St, Burnaby, BC">Kincaid at Smith</option>
       <option value="vancouver, bc">Vancouver</option>
       <option value="st louis, mo">St Louis</option>
       <option value="joplin, mo">Joplin, MO</option>
@@ -51,6 +53,8 @@
     </select>
     <b>End: </b>
     <select id="end">
+      <option value="UBC, Vancouver">UBC</option>
+      <option value="3761 Kincaid St, Burnaby, BC">Kincaid at Smith</option>
       <option value="coquitlam, bc">Coquitlam</option>
       <option value="st louis, mo">St Louis</option>
       <option value="joplin, mo">Joplin, MO</option>
@@ -72,7 +76,7 @@
         var directionsDisplay = new google.maps.DirectionsRenderer;
         var map = new google.maps.Map(document.getElementById('map'), {
           zoom: 7,
-          center: {lat: 41.85, lng: -87.65}
+          center: {lat: 49.2827, lng: -123.1207}
         });
         directionsDisplay.setMap(map);
 
@@ -89,7 +93,9 @@
           destination: document.getElementById('end').value,
           travelMode: 'TRANSIT',
           transitOptions: {
-            departureTime: new Date()
+            // departureTime: new Date()
+              departureTime: new Date(2016, 10, 26, 8, 0, 0, 0)
+
           },
           provideRouteAlternatives: true
         }, function(response, status) {
@@ -97,37 +103,81 @@
               var allTehRoutes = {};
               directionsDisplay.setDirections(response);
               console.log(response);
+
+              var userRoutes = {};
               response.routes.forEach((e, i) => {
-                console.log('route '+i+' legs: ');
+
+                var currRoute = userRoutes['route' + i] = {};
+                //console.log('route '+i+' legs: ');
                 e.legs.forEach((leg, i) => {
-                  console.log('   leg '+i+': ');
+                  
+                  // console.log('   leg '+i+': ');
+                  var currLeg = currRoute['leg' + i] = {};
+                  currLeg.steps = [];
                   leg.steps.forEach((step, i) => {
+
+                    var currStep = {};
                     if (step.travel_mode === "TRANSIT") {
-                      console.log('   transit:');
-                      console.log('     transit arrival location: lat: '+step.transit.arrival_stop.location.lat()+' '+'long: '+step.transit.arrival_stop.location.lng()+' arrival stop name: '+step.transit.arrival_stop.name);
-                      console.log('     transit arrival time: '+step.transit.arrival_time.text);
-                      console.log('     transit arrival location: lat: '+step.transit.departure_stop.location.lat()+' '+'long: '+step.transit.departure_stop.location.lng()+' departure stop name: '+step.transit.departure_stop.name);
-                      console.log('     transit departure time: '+step.transit.departure_time.text);
-                      console.log('     transit line: '+step.transit.line.name+' '+'id: '+step.transit.line.short_name);
-                    } else if (step.travel_mode === "WALKING") {
+                      currStep.mode = "TRANSIT";
+                      currStep.name = step.transit.line.name;
+                      currStep.departureStop = {};
+                      currStep.departureStop.lat = step.transit.departure_stop.location.lat();
+                      currStep.departureStop.lng = step.transit.departure_stop.location.lng();
+                      currStep.departureStop.name = step.transit.departure_stop.name;
+                      currStep.departureTime = step.transit.departure_time;
+                      currStep.arrivalStop = {}
+                      currStep.arrivalStop.lat = step.transit.arrival_stop.location.lat();
+                      currStep.arrivalStop.lng = step.transit.arrival_stop.location.lng();
+                      currStep.arrivalStop.name = step.transit.arrival_stop.name;
+                      currStep.arrivalTime = step.transit.arrival_time;
+                      currStep.headSign = step.transit.headsign;
+                      currStep.routeNum = step.transit.line.short_name;
+
+                      currLeg.steps.push(currStep);
+                      // console.log('   transit:');
+                      // console.log('     transit arrival location: lat: '+step.transit.arrival_stop.location.lat()+' '+'long: '+step.transit.arrival_stop.location.lng()+' arrival stop name: '+step.transit.arrival_stop.name);
+                      // console.log('     transit arrival time: '+step.transit.arrival_time.text);
+
+                      // console.log('     transit arrival location: lat: '+step.transit.departure_stop.location.lat()+' '+'long: '+step.transit.departure_stop.location.lng()+' departure stop name: '+step.transit.departure_stop.name);
+                      // console.log('     transit departure time: '+step.transit.departure_time.text);
+                      // console.log('     transit line: '+step.transit.line.name+' '+'id: '+step.transit.line.short_name);
+                    }
+                    else if (step.travel_mode === "WALKING") {
+                        currStep.mode = "WALKING";
+                        currStep.walkingSteps = [];
                         step.steps.forEach((walkingStep, i) => {
-                          console.log('      walkingStep: '+i);
-                          console.log('         walking distance: '+walkingStep.distance.text);
-                          console.log('         walking duration: '+walkingStep.duration.text);
-                          console.log('         walking instructions: '+walkingStep.instructions+' start from: '+'lat: '+walkingStep.start_location.lat()+' '+'long: '+walkingStep.start_location.lng()+' to end lat: '+walkingStep.end_location.lat()+' '+'long: '+walkingStep.end_location.lng());
+                          currWalkingStep = {};
+                          currWalkingStep.distance = walkingStep.distance;
+                          currWalkingStep.duration = walkingStep.duration.value;
+                          currWalkingStep.instructions = walkingStep.instructions;
+                          currWalkingStep.fromLocn = {};
+                          currWalkingStep.fromLocn.lat = walkingStep.start_location.lat();
+                          currWalkingStep.fromLocn.lng = walkingStep.start_location.lng();
+                          currWalkingStep.toLocn = {};
+                          currWalkingStep.toLocn.lat = walkingStep.end_location.lat();
+                          currWalkingStep.toLocn.lng = walkingStep.end_location.lng();
+                          currStep.walkingSteps.push(currWalkingStep);
+                          // console.log('      walkingStep: '+i);
+                          // console.log('         walking distance: '+walkingStep.distance.text);
+                          // console.log('         walking duration: '+walkingStep.duration.text);
+                          // console.log('         walking instructions: '+walkingStep.instructions+' start from: '+'lat: '++' '+'long: '+walkingStep.start_location.lng()+' to end lat: '+walkingStep.end_location.lat()+' '+'long: '+walkingStep.end_location.lng());
                         })
+                        currLeg.steps.push(currStep);
+
                     }
                   });
                 });
               })
+              console.log(userRoutes);
             } else {
-              window.alert('Directions request failed due to ' + status);
+              // window.alert('Directions request failed due to ' + status);
+              console.log('Directions request failed due to ' + status);
             }
         });
       }
     </script>
     <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=ENTER_KEY&callback=initMap">
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY&callback=initMap">
     </script>
   </body>
 </html>
