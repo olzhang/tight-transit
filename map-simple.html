@@ -53,6 +53,7 @@
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="xml2json.js"></script>
     <script src="parsexml.js"></script>
+    <script src="xml2json.min.js"></script>
     <script>
       var map;
 
@@ -76,7 +77,7 @@
       }
 
       String.prototype.cleanName = function() {
-        return this.toLowerCase().replace(/[^a-zA-Z]+/g, "");
+        return this.toLowerCase().replace(/[^a-zA-Z0-9  ]+/g, "");
       }
 
       function calculateAndDisplayRoute(directionsService, directionsDisplay) {
@@ -138,17 +139,10 @@
                     currStep.arrivalTime = step.transit.arrival_time;
                     currStep.headSign = step.transit.headsign;
                     currStep.routeNum = step.transit.line.short_name;
-
+                    console.log(currStep.routeNum);
 
 
                     currLeg.steps.push(currStep);
-                    // console.log('   transit:');
-                    // console.log('     transit arrival location: lat: '+step.transit.arrival_stop.location.lat()+' '+'long: '+step.transit.arrival_stop.location.lng()+' arrival stop name: '+step.transit.arrival_stop.name);
-                    // console.log('     transit arrival time: '+step.transit.arrival_time.text);
-
-                    // console.log('     transit arrival location: lat: '+step.transit.departure_stop.location.lat()+' '+'long: '+step.transit.departure_stop.location.lng()+' departure stop name: '+step.transit.departure_stop.name);
-                    // console.log('     transit departure time: '+step.transit.departure_time.text);
-                    // console.log('     transit line: '+step.transit.line.name+' '+'id: '+step.transit.line.short_name);
                   } else if (step.travel_mode === "WALKING") {
                     currStep.mode = "WALKING";
                     currStep.walkingSteps = [];
@@ -164,10 +158,6 @@
                       currWalkingStep.toLocn.lat = walkingStep.end_location.lat();
                       currWalkingStep.toLocn.lng = walkingStep.end_location.lng();
                       currStep.walkingSteps.push(currWalkingStep);
-                      // console.log('      walkingStep: '+i);
-                      // console.log('         walking distance: '+walkingStep.distance.text);
-                      // console.log('         walking duration: '+walkingStep.duration.text);
-                      // console.log('         walking instructions: '+walkingStep.instructions+' start from: '+'lat: '++' '+'long: '+walkingStep.start_location.lng()+' to end lat: '+walkingStep.end_location.lat()+' '+'long: '+walkingStep.end_location.lng());
                     })
                     currLeg.steps.push(currStep);
                   }
@@ -177,15 +167,17 @@
                   step = currLeg.steps[i];
                   var stopList = {};
                   if (step.mode === "TRANSIT") {
-                    stopLat = step.arrivalStop.lat.toFixed(5);
-                    stopLng = step.arrivalStop.lng.toFixed(5);
-                    name = step.arrivalStop.name.cleanName();
-                    routeNum = step.routeNum;
+                    i = -1;
+                    var stopLat = step.arrivalStop.lat.toFixed(5);
+                    var stopLng = step.arrivalStop.lng.toFixed(5);
+                    var gMapsName = step.arrivalStop.name.cleanName();
+                    console.log(gMapsName);
+                    var routeNum = step.routeNum;
                     var responseXmlData = "";
                     axios.get(
                       'https://crossorigin.me/http://api.translink.ca/RTTIAPI/V1/stops', {
                       params: {
-                        apiKey: 'INSERT_TRANSLINK_API_KEY_HERE',
+                        apiKey: 'INSERT_TRANSLINK_API_HERE',
                         lat: stopLat,
                         long: stopLng
                       },
@@ -194,14 +186,20 @@
                       }
                     }).then(function(response) {
                       responseXmlData = response.data;
+                      var x2js = new X2JS();
+                      var jsonObj = x2js.xml_str2json(responseXmlData);
+                      jsonObj.Stops.Stop.forEach((e, i) => {
+                        var tLApiName = e.Name.cleanName();
+                        if (tLApiName == gMapsName){
+                          console.log("Found stopID: " + e.StopNo);
+                          console.log(e.Name);
+                          console.log(gMapsName);
+                          console.log(tLApiName);
+                        }
+                      });
                     }).catch(function(error) {
                       console.log();
                     });
-
-                    console.log(routeNum);
-                    console.log(name);
-                    var stopList = parseXml(responseXmlData);
-                    return;
                   }
                 }
               });
