@@ -30,32 +30,86 @@
         line-height: 30px;
         padding-left: 10px;
       }
+      #directions{
+        padding-top: 1px;
+      }
+      table, th, td{
+        border:1px solid black;
+      }
     </style>
   </head>
   <body>
     <div id="floating-panel">
     <b>Start: </b>
     <select id="start">
-      <option value="UBC, Vancouver">UBC</option>
+      <option value="UBC Bus Loop, Vancouver, BC V6T">UBC</option>
       <option value="3761 Kincaid St, Burnaby, BC">Kincaid at Smith</option>
       <option value="vancouver, bc">Vancouver</option>
     </select>
     <b>End: </b>
     <select id="end">
-      <option value="UBC, Vancouver">UBC</option>
+      <option value="UBC Bus Loop, Vancouver, BC V6T">UBC</option>
       <option value="3761 Kincaid St, Burnaby, BC">Kincaid at Smith</option>
       <option value="coquitlam, bc">Coquitlam</option>
+      <option value="5011 Granville Ave, Richmond, BC">Granville at Railway</option>
+      <option value="9500 Glenlyon Parkway, Burnaby, BC">Samsung</option>
+      <option value="Burnaby, BC V5H 4M3">Metrotown Stn</option>
     </select>
     </div>
     <div id="map"></div>
-    <select id="routes">   
-    </select>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <script src="xml2json.js"></script>
     <script src="parsexml.js"></script>
     <script src="xml2json.min.js"></script>
+    <!-- <script src="lodash.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/lodash/4.16.6/lodash.min.js"></script>
     <script>
+      var tl_api_key = "TL_API_KEY";
       var map;
+
+      function isSameLeg(leg1, leg2)
+      {
+        // base same leg on same bus route, same arrival/depart time for each route
+        var leg1TransitSteps = [];
+        var leg2TransitSteps = [];
+
+        leg1.steps.forEach((step, index) => {
+          if (step.mode == "TRANSIT"){
+            leg1TransitSteps.push({
+              departureTime: step.departureTime,
+              arrivalTime: step.arrivalTime,
+              routeNum: step.routeNum,
+            });
+          }
+        });
+        leg2.steps.forEach((step, index) => {
+          if (step.mode == "TRANSIT"){
+            leg2TransitSteps.push({
+              departureTime: step.departureTime,
+              arrivalTime: step.arrivalTime,
+              routeNum: step.routeNum,
+            });
+          }
+        });
+
+        if (leg1TransitSteps.length !== leg2TransitSteps.length) return false;
+
+        leg1TransitSteps.forEach((legTS, i) => {
+          if (legTS != leg2TransitSteps[i])
+            return false;
+        });
+
+        return true;
+      }
+
+      function isSameRoute(route1, route2) {
+        if (route1.length !== route2.length) return false;
+        route1.forEach((leg, i) => {
+          if (!isSameLeg(leg, route2[i])){
+            return false;
+          }
+        });
+        return true;
+      }
 
       function initMap() {
         var directionsService = new google.maps.DirectionsService;
@@ -70,7 +124,35 @@
         directionsDisplay.setMap(map);
 
         var onChangeHandler = function() {
-          calculateAndDisplayRoute(directionsService, directionsDisplay);
+          var year = parseInt(document.getElementById("year").value);
+          var month = parseInt(document.getElementById("month").value);
+          var day = parseInt(document.getElementById("day").value);
+          var hour = parseInt(document.getElementById("hour").value);
+          var min = parseInt(document.getElementById("min").value);
+          var nexthours = parseInt(document.getElementById("nexthours").value);
+          var mininterval = parseInt(document.getElementById("mininterval").value);
+          var nextmins = nexthours * 60;
+          var apiWaitTime = 0;
+          var allTehRoutes = [];
+          var routeArr = [];
+          var apiCallsRemaining = 0;
+          for(var i = 0; i <= nextmins + mininterval; i += mininterval){
+            var theDate = new Date(year, month + 1, day, hour - 7, min + i);
+            apiCallsRemaining++;
+            setTimeout(function() {
+              calculateAndDisplayRoute(directionsService, directionsDisplay, theDate, allTehRoutes);
+              apiCallsRemaining--;
+              if (apiCallsRemaining <= 0){
+                allTehRoutes.forEach((routes, index) => {
+                  routeArr.push.apply(routeArr, routes);
+                });
+                console.log(routeArr);
+                uniqueRoutes = _.uniqWith(routeArr, isSameRoute);
+                console.log(uniqueRoutes);
+              }
+            }, apiWaitTime + i * 650 / mininterval);
+            apiWaitTime += 100;
+          }
         };
         document.getElementById('start').addEventListener('change', onChangeHandler);
         document.getElementById('end').addEventListener('change', onChangeHandler);
@@ -80,14 +162,45 @@
         return this.toLowerCase().replace(/[^a-zA-Z0-9  ]+/g, "");
       }
 
-      function calculateAndDisplayRoute(directionsService, directionsDisplay) {
-        directionsService.route({
+      function queryTranslinkApi(tLUrl, tLParams) {
+        var tLParams = (typeof tLParams !== 'undefined') ?  tLParams : {};
+        tLParams.apiKey = tl_api_key;
+        return axios.get(
+          'https://crossorigin.me/' + tLUrl, {
+          params: tLParams,
+          headers: {
+            'Accept': 'application/json'
+          }
+        }).then(function(response){
+          var x2js = new X2JS();
+          var jsonObj = x2js.xml_str2json(response.data);
+          return jsonObj;
+        }).catch(function(error){
+          console.log(error);
+        });
+      }
+      // queryTranslinkApi(url).then(function(response) {
+
+      //   return queryTranslinkApi(url2)
+      // }).then(function(response){
+      //   // do something with data
+      //   if (response){ //contains data
+      //     throw Error('intentional_abort')
+      //   }
+      // }).catch(function(error))
+
+      function calculateAndDisplayRoute(directionsService, directionsDisplay, departTime, routeList) {
+        if (departTime === undefined) departTime = new Date();
+        if (routeList === undefined) routeList = [];
+
+          directionsService.route({
           origin: document.getElementById('start').value,
           destination: document.getElementById('end').value,
           travelMode: 'TRANSIT',
           transitOptions: {
             // departureTime: new Date()
-            departureTime: new Date(2016, 10, 26, 8, 0, 0, 0)
+            // departureTime: new Date(2016, 11, 2, 7, 0, 0, 0)
+            departureTime: departTime
 
           },
           provideRouteAlternatives: true
@@ -95,8 +208,6 @@
           if (status === 'OK') {
 
             for (var i = 0; i < response.routes.length; i++) {
-              console.log(response.routes[i]);
-              console.log(i);
               new google.maps.DirectionsRenderer({
                 map: map,
                 directions: response,
@@ -108,18 +219,17 @@
               //                    directionsDisplay.setRouteIndex(i);
               //                    directionsDisplay.setDirections(response);
             }
-            var allTehRoutes = {};
+            // var allTehRoutes = {};
             directionsDisplay.setDirections(response);
-            console.log(response);
 
-            var userRoutes = {};
+            var userRoutes = [];
             response.routes.forEach((e, i) => {
-              var currRoute = userRoutes['route' + i] = {};
-              //console.log('route '+i+' legs: ');
+              var currRoute = [];
+              userRoutes.push(currRoute);
               e.legs.forEach((leg, i) => {
 
-                // console.log('   leg '+i+': ');
-                var currLeg = currRoute['leg' + i] = {};
+                var currLeg = {};
+                currRoute.push(currLeg);
                 currLeg.steps = [];
                 leg.steps.forEach((step, i) => {
 
@@ -131,17 +241,14 @@
                     currStep.departureStop.lat = step.transit.departure_stop.location.lat();
                     currStep.departureStop.lng = step.transit.departure_stop.location.lng();
                     currStep.departureStop.name = step.transit.departure_stop.name;
-                    currStep.departureTime = step.transit.departure_time;
+                    currStep.departureTime = step.transit.departure_time.value;
                     currStep.arrivalStop = {}
                     currStep.arrivalStop.lat = step.transit.arrival_stop.location.lat();
                     currStep.arrivalStop.lng = step.transit.arrival_stop.location.lng();
                     currStep.arrivalStop.name = step.transit.arrival_stop.name;
-                    currStep.arrivalTime = step.transit.arrival_time;
+                    currStep.arrivalTime = step.transit.arrival_time.value;
                     currStep.headSign = step.transit.headsign;
                     currStep.routeNum = step.transit.line.short_name;
-                    console.log(currStep.routeNum);
-
-
                     currLeg.steps.push(currStep);
                   } else if (step.travel_mode === "WALKING") {
                     currStep.mode = "WALKING";
@@ -163,50 +270,66 @@
                   }
 
                 });
-                for (var i = currLeg.steps.length - 1; i >= 0; i--) {
-                  step = currLeg.steps[i];
-                  var stopList = {};
-                  if (step.mode === "TRANSIT") {
-                    i = -1;
-                    var stopLat = step.arrivalStop.lat.toFixed(5);
-                    var stopLng = step.arrivalStop.lng.toFixed(5);
-                    var gMapsName = step.arrivalStop.name.cleanName();
-                    console.log(gMapsName);
-                    var routeNum = step.routeNum;
-                    var responseXmlData = "";
-                    axios.get(
-                      'https://crossorigin.me/http://api.translink.ca/RTTIAPI/V1/stops', {
-                      params: {
-                        apiKey: 'INSERT_TRANSLINK_API_HERE',
-                        lat: stopLat,
-                        long: stopLng
-                      },
-                      headers: {
-                        'Accept': 'application/json'
-                      }
-                    }).then(function(response) {
-                      responseXmlData = response.data;
-                      var x2js = new X2JS();
-                      var jsonObj = x2js.xml_str2json(responseXmlData);
-                      jsonObj.Stops.Stop.forEach((e, i) => {
-                        var tLApiName = e.Name.cleanName();
-                        if (tLApiName == gMapsName){
-                          console.log("Found stopID: " + e.StopNo);
-                          console.log(e.Name);
-                          console.log(gMapsName);
-                          console.log(tLApiName);
-                        }
-                      });
-                    }).catch(function(error) {
-                      console.log();
-                    });
-                  }
-                }
+                // for (var i = currLeg.steps.length - 1; i >= 0; i--) {
+                //   step = currLeg.steps[i];
+                //   var stopList = {};
+                //   if (step.mode === "TRANSIT") {
+                //     i = -1;
+                //     var stopLat = step.arrivalStop.lat.toFixed(5);
+                //     var stopLng = step.arrivalStop.lng.toFixed(5);
+                //     var gMapsName = step.arrivalStop.name.cleanName();
+                //     console.log(gMapsName);
+                //     var routeNum = step.routeNum;
+                //     var responseXmlData = "";
+                //     queryTranslinkApi("http://api.translink.ca/RTTIAPI/V1/stops", {lat: stopLat, long: stopLng
+                //     }).then(function(response) {
+                //       var jsonObj = response;
+                //       jsonObj.Stops.Stop.forEach((e, i) => {
+                //         var tLApiName = e.Name.cleanName();
+                //         if (tLApiName == gMapsName){
+                //           var tLStopNo = e.StopNo; 
+                //           console.log("Found stopID: " + e.StopNo);
+                //           console.log(tLStopNo);
+                //           var tLStopEndpoint = 'https://crossorigin.me/http://api.translink.ca/rttiapi/v1/stops/' + tLStopNo + '/estimates';
+                //           console.log(tLStopEndpoint);
+                //           axios.get(tLStopEndpoint, {
+                //             params: {
+                //               apiKey: tl_api_key,
+                //               count: "10"
+                //             },
+                //             headers: {
+                //               'Accept': 'application/json'
+                //             }
+                //           }).then(function(response) {
+                //             var responseXmlData2 = response.data;
+                //             var x2js2 = new X2JS();
+                //             //var jsonObj2 = x2js.xml_str2json(responseXmlData2);
+                //             // console.log(jsonObj2);
+                //             // if(x2js.xml_str2json(responseXmlData2) has no stops) {
+                //               // return 
+                //             // };
+                //           }).then(axiosResponse => {
+                //              // if (jsonObj2 has no stop times) {
+                //               axiosResponse.then(function(response) {
+                //                 //do something
+                //               })
+                //             console.log(jsonObj2);
+                //              // }
+                //           }).catch(function(error) {
+                //             console.log();
+                //           });
+                //         }
+                //       });
+                //     }).catch(function(error) {
+                //       console.log();
+                //     });
+                //   }
+                // }
               });
             })
-            console.log(userRoutes);
+
+            routeList.push(userRoutes);
           } else {
-            // window.alert('Directions request failed due to ' + status);
             console.log('Directions request failed due to ' + status);
           }
         });
@@ -215,5 +338,29 @@
     <script async defer
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY&callback=initMap">
     </script>
+    <div id="directions">
+      <input id="year" value="2016" />
+      <input id="month" value="10" />
+      <input id="day" value="01" />
+      <input id="hour" value="20" />
+      <input id="min" value="00" />
+      <br />
+      Next how many hours?
+      <input id="nexthours" value="4" />
+      <input id="mininterval" value="10" />
+      <div id="dirout">
+        Directions output here:
+        <br />
+        <table id="routeoutput">
+          <tr>
+            <td>Routes</td>
+            <td>Transit Start Time</td>
+            <td>Transit End Time</td>
+            <td>Total Transit</td>
+            <td>Total Transit + Walk</td> 
+          </tr>
+        </table>
+      </div>
+    </div>
   </body>
 </html>
