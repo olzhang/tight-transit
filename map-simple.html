@@ -96,10 +96,10 @@
 
         if (leg1TransitSteps.length !== leg2TransitSteps.length) return false;
 
-        leg1TransitSteps.forEach((legTS, i) => {
-          if (legTS != leg2TransitSteps[i])
+        for (var i=0; i<leg1TransitSteps.length; i++) {
+          if (leg1TransitSteps[i] !== leg2TransitSteps[i])
             return false;
-        });
+        }
 
         return true;
       }
