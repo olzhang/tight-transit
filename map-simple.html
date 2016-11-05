@@ -91,14 +91,12 @@
           }
         });
 
-        console.log(leg1TransitSteps);
-        console.log(leg2TransitSteps);
-
         if (leg1TransitSteps.length !== leg2TransitSteps.length) return false;
 
         for (var i=0; i<leg1TransitSteps.length; i++) {
-          if (leg1TransitSteps[i] !== leg2TransitSteps[i])
+          if (JSON.stringify(leg1TransitSteps[i]) != JSON.stringify(leg2TransitSteps[i])){
             return false;
+          }
         }
 
         return true;
@@ -140,7 +138,7 @@
           var routeArr = [];
           var apiCallsRemaining = 0;
           for(var i = 0; i <= nextmins + mininterval; i += mininterval){
-            var theDate = new Date(year, month + 1, day, hour - 7, min + i);
+            let theDate = new Date(year, month + 1, day, hour - 7, min + i);
             apiCallsRemaining++;
             setTimeout(function() {
               calculateAndDisplayRoute(directionsService, directionsDisplay, theDate, allTehRoutes);
@@ -194,6 +192,7 @@
 
       function calculateAndDisplayRoute(directionsService, directionsDisplay, departTime, routeList) {
         if (departTime === undefined) departTime = new Date();
+        console.log(departTime);
         if (routeList === undefined) routeList = [];
 
           directionsService.route({
