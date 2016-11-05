@@ -91,6 +91,9 @@
           }
         });
 
+        console.log(leg1TransitSteps);
+        console.log(leg2TransitSteps);
+
         if (leg1TransitSteps.length !== leg2TransitSteps.length) return false;
 
         leg1TransitSteps.forEach((legTS, i) => {
@@ -102,12 +105,12 @@
       }
 
       function isSameRoute(route1, route2) {
-        if (route1.length !== route2.length) return false;
-        route1.forEach((leg, i) => {
-          if (!isSameLeg(leg, route2[i])){
+        if (route1.length != route2.length) return false;
+        for (var i = 0; i < route1.length; i++) {
+          if (!isSameLeg(route1[i], route2[i])){
             return false;
           }
-        });
+        }
         return true;
       }
 
