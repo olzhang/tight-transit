@@ -5,9 +5,11 @@ import {
 } from 'react-native';
 
 import RouteSearch from './components/views/RouteSearch';
+import RouteList from './components/views/RouteList';
 
 const ROUTES = {
-  routeSearch: RouteSearch
+  routeSearch: RouteSearch,
+  routeList: RouteList
 }
 
 class Main extends Component {
