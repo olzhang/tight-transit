@@ -6,13 +6,13 @@ import {
   TextInput,
   ToastAndroid
 } from 'react-native';
+import DatePicker from 'react-native-datepicker';
+var moment = require('moment');
 
 //import GoogleMapsService from '@google/maps';
 
 import InputField from '../common/InputField';
 import Button from '../common/Button';
-
-const googleMapsUrl = 'https://maps.googleapis.com/maps/api/directions/json?origin=UBC+Bus+Loop,+Vancouver,+BC V6T&destination=9500+Glenlyon+Parkway,+Burnaby,+BC&region=es&mode=transit&departure_time= 1478461704&alternatives=true&key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY';
 
 class RouteSearch extends Component {
 
@@ -21,6 +21,7 @@ class RouteSearch extends Component {
     this.state = {
       from: '',
       to: '',
+      startTime: moment().format("YYYY-MM-DD HH:mm"),
       errorMessage: ''
     };
     this.onGetRouteButtonPress.bind(this);
@@ -31,11 +32,13 @@ class RouteSearch extends Component {
   // }
 
   onGetRouteButtonPress() {
-    fetch(googleMapsUrl)
+    gMapsUrl = "https://maps.googleapis.com/maps/api/directions/json?mode=transit&departure_time=1478461704&alternatives=true&key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY&origin=";
+    gMapsUrl = gMapsUrl + `${this.from}&destination=${this.to}`
+    fetch(gMapsUrl)
       .then(response => response.json())
       .then(responseJson => {
           this.props.navigator.push({
-            name: 'routeList', 
+            name: 'routeList',
             passProps: {
               transitData: responseJson
             }
@@ -47,8 +50,12 @@ class RouteSearch extends Component {
       });
     ToastAndroid.show('Getting Route ....', ToastAndroid.SHORT)
   }
-  
+
   render() {
+
+    // this.setState({
+    //   unixStartTime: moment(this.state.startTime, "YYYY-MM-DD HH:mm").unix()
+    // });
 
     return (
       <View style={styles.container}>
@@ -60,13 +67,33 @@ class RouteSearch extends Component {
 
         <InputField
           name={"To"}
-          placeholder="To" 
+          placeholder="To"
           onChangeText={text => this.setState({to: text})} />
 
         <Text style={styles.errorMessage}>{this.state.errorMessage}</Text>
-        
-        <Button style={styles.buttonStyle} text={'Get Route'} onPress={() => this.onGetRouteButtonPress()} />
 
+        <DatePicker
+          style={{width: 200}}
+          date={this.state.startTime}
+          mode="datetime"
+          format="YYYY-MM-DD HH:mm"
+          confirmBtnText="Confirm"
+          cancelBtnText="Cancel"
+          customStyles={{
+            dateIcon: {
+              position: 'absolute',
+              left: 0,
+              top: 4,
+              marginLeft: 0
+            },
+            dateInput: {
+              marginLeft: 36
+            }
+          }}
+          minuteInterval={10}
+          onDateChange={(datetime) => {this.setState({startTime: datetime});}}
+        />
+        <Button style={styles.buttonStyle} text={'Get Route'} onPress={() => this.onGetRouteButtonPress()} />
       </View>
     );
   }
