@@ -8,11 +8,12 @@ import {
 } from 'react-native';
 
 import Button from '../common/Button';
+import * as Processor from '../../utils/parser';
 
 class RouteList extends Component {
 
   constructor(props) {
-    super(props);  
+    super(props);
 
     this.onPress.bind(this);
   }
@@ -21,7 +22,7 @@ class RouteList extends Component {
   onPress() {
     this.props.navigator.immediatelyResetRouteStack([{name: 'routeSearch'}]);
   }
-  
+
   render() {
 
     return (
@@ -34,6 +35,10 @@ class RouteList extends Component {
       </View>
     );
   }
+}
+
+function displayTransitData(dataList){
+
 }
 
 const styles = StyleSheet.create({

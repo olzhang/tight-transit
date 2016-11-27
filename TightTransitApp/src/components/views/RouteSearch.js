@@ -7,6 +7,7 @@ import {
   ToastAndroid
 } from 'react-native';
 import DatePicker from 'react-native-datepicker';
+import ParseRoutes from '../../utils/parser';
 var moment = require('moment');
 
 //import GoogleMapsService from '@google/maps';
@@ -19,8 +20,8 @@ class RouteSearch extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      from: '',
-      to: '',
+      from: 'UBC Bus Loop, Vancouver, BC V6T',
+      to: '9500 Glenlyon Parkway, Burnaby, BC',
       startTime: moment().format("YYYY-MM-DD HH:mm"),
       errorMessage: ''
     };
@@ -32,18 +33,25 @@ class RouteSearch extends Component {
   // }
 
   onGetRouteButtonPress() {
-    gMapsUrl = "https://maps.googleapis.com/maps/api/directions/json?mode=transit&departure_time=1478461704&alternatives=true&key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY&origin=";
-    gMapsUrl = gMapsUrl + `${this.from}&destination=${this.to}`
+    gMapsUrl = "https://maps.googleapis.com/maps/api/directions/json?mode=transit&alternatives=true&key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY&origin=";
+    gMapsUrl = gMapsUrl + `${this.state.from}&destination=${this.state.to}&departure_time=${moment(this.state.startTime, "YYYY-MM-DD HH:mm").unix()}`;
+    gMapsUrl = gMapsUrl.replace(new RegExp(" ", 'g'), "+");
     fetch(gMapsUrl)
-      .then(response => response.json())
+      .then(response => {
+        console.log(response);
+        return response.json();
+      })
       .then(responseJson => {
+          // console.log(responseJson);
+          var routeList = [];
+          ParseRoutes(responseJson, routeList);
           this.props.navigator.push({
             name: 'routeList',
             passProps: {
-              transitData: responseJson
+              transitData: routeList
             }
           });
-//          ToastAndroid.show(JSON.stringify(responseJson), ToastAndroid.LONG))
+// ToastAndroid.show(JSON.stringify(responseJson), ToastAndroid.LONG))
         })
       .catch((error) => {
         error => this.setState({errorMessage: error.message});
@@ -52,24 +60,20 @@ class RouteSearch extends Component {
   }
 
   render() {
-
-    // this.setState({
-    //   unixStartTime: moment(this.state.startTime, "YYYY-MM-DD HH:mm").unix()
-    // });
-
     return (
       <View style={styles.container}>
         <Text>Get Route</Text>
         <InputField
           name={"From"}
-          placeholder="From"
-          onChangeText={text => this.setState({from: text})} />
 
+          onChangeText={text => this.setState({from: text})}
+          value={this.state.from} />
+{/* placeholder="From" */}
         <InputField
           name={"To"}
-          placeholder="To"
-          onChangeText={text => this.setState({to: text})} />
-
+          onChangeText={text => this.setState({to: text})}
+          value={this.state.to}  />
+{/* placeholder="To" */}
         <Text style={styles.errorMessage}>{this.state.errorMessage}</Text>
 
         <DatePicker

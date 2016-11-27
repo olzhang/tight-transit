@@ -246,60 +246,6 @@
                 }
 
               });
-               //   step = currLeg.steps[i];
-              //   var stopList = {};
-              //   if (step.mode === "TRANSIT") {
-              //     i = -1;
-              //     var stopLat = step.arrivalStop.lat.toFixed(5);
-              //     var stopLng = step.arrivalStop.lng.toFixed(5);
-              //     var gMapsName = step.arrivalStop.name.cleanName();
-              //     console.log(gMapsName);
-              //     var routeNum = step.routeNum;
-              //     var responseXmlData = "";
-              //     queryTranslinkApi("http://api.translink.ca/RTTIAPI/V1/stops", {lat: stopLat, long: stopLng
-              //     }).then(function(response) {
-              //       var jsonObj = response;
-              //       jsonObj.Stops.Stop.forEach((e, i) => {
-              //         var tLApiName = e.Name.cleanName();
-              //         if (tLApiName == gMapsName){
-              //           var tLStopNo = e.StopNo;
-              //           console.log("Found stopID: " + e.StopNo);
-              //           console.log(tLStopNo);
-              //           var tLStopEndpoint = 'https://crossorigin.me/http://api.translink.ca/rttiapi/v1/stops/' + tLStopNo + '/estimates';
-              //           console.log(tLStopEndpoint);
-              //           axios.get(tLStopEndpoint, {
-              //             params: {
-              //               apiKey: tl_api_key,
-              //               count: "10"
-              //             },
-              //             headers: {
-              //               'Accept': 'application/json'
-              //             }
-              //           }).then(function(response) {
-              //             var responseXmlData2 = response.data;
-              //             var x2js2 = new X2JS();
-              //             //var jsonObj2 = x2js.xml_str2json(responseXmlData2);
-              //             // console.log(jsonObj2);
-              //             // if(x2js.xml_str2json(responseXmlData2) has no stops) {
-              //               // return
-              //             // };
-              //           }).then(axiosResponse => {
-              //              // if (jsonObj2 has no stop times) {
-              //               axiosResponse.then(function(response) {
-              //                 //do something
-              //               })
-              //             console.log(jsonObj2);
-              //              // }
-              //           }).catch(function(error) {
-              //             console.log();
-              //           });
-              //         }
-              //       });
-              //     }).catch(function(error) {
-              //       console.log();
-              //     });
-              //   }
-              // }
             });
           });
           routeList.push(userRoutes);
