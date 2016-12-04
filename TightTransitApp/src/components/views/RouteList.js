@@ -4,17 +4,20 @@ import {
   Text,
   View,
   ScrollView,
-  TextInput
+  TextInput,
+  ListView
 } from 'react-native';
 
 import Button from '../common/Button';
-import * as Processor from '../../utils/parser';
 
 class RouteList extends Component {
 
   constructor(props) {
     super(props);
-
+    const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
+    this.state = {
+      dataSource: ds.cloneWithRows(this.props.transitData.map(e => JSON.stringify(e)))
+    };
     this.onPress.bind(this);
   }
 
@@ -23,14 +26,26 @@ class RouteList extends Component {
     this.props.navigator.immediatelyResetRouteStack([{name: 'routeSearch'}]);
   }
 
+  renderRow(rowData) {
+      return (
+        <View style={styles.row}>
+          {/* <Text style={styles.rowText}>
+            {rowData}
+          </Text> */}
+        </View>
+      );
+  }
+
   render() {
 
     return (
       <View style={styles.container}>
         <ScrollView style={styles.scrollView}>
-          <Text>{JSON.stringify(this.props.transitData)}</Text>
-        </ScrollView>
-
+          <ListView
+            dataSource={this.state.dataSource}
+            renderRow={(rowData) => renderRow(rowData)}
+          />
+          </ScrollView>
         <Button style={styles.buttonStyle} text={'Go Back'} onPress={() => this.onPress()} />
       </View>
     );
@@ -55,6 +70,20 @@ const styles = StyleSheet.create({
   buttonStyle: {
     height: 40,
     width: 100
+  },
+  row: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 5,
+    borderColor: 'black',
+    margin: 10
+  },
+  rowText: {
+    flex: 1,
+    alignSelf: 'center',
+    fontSize: 20
   }
 });
 
