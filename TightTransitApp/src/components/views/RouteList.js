@@ -29,9 +29,8 @@ class RouteList extends Component {
   renderRow(rowData) {
       return (
         <View style={styles.row}>
-          {/* <Text style={styles.rowText}>
-            {rowData}
-          </Text> */}
+          <Text>=====================
+            {JSON.stringify(rowData)}</Text>
         </View>
       );
   }
@@ -43,7 +42,7 @@ class RouteList extends Component {
         <ScrollView style={styles.scrollView}>
           <ListView
             dataSource={this.state.dataSource}
-            renderRow={(rowData) => renderRow(rowData)}
+            renderRow={(rowData) => this.renderRow(rowData)}
           />
           </ScrollView>
         <Button style={styles.buttonStyle} text={'Go Back'} onPress={() => this.onPress()} />
