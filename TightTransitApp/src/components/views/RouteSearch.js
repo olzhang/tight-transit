@@ -43,8 +43,8 @@ class RouteSearch extends Component {
         return response.json();
       })
       .then(responseJson => {
-          // console.log(responseJson);
-          var routeList = [];
+          console.log(responseJson);
+          let routeList = [];
           ParseRoutes(responseJson, routeList);
           this.props.navigator.push({
             name: 'routeList',

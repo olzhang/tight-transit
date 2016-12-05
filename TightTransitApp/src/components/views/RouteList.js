@@ -9,6 +9,9 @@ import {
 } from 'react-native';
 
 import Button from '../common/Button';
+import * as Parser from '../../utils/parser';
+
+var moment = require('moment');
 
 class RouteList extends Component {
 
@@ -16,7 +19,7 @@ class RouteList extends Component {
     super(props);
     const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
     this.state = {
-      dataSource: ds.cloneWithRows(this.props.transitData.map(e => JSON.stringify(e)))
+      dataSource: ds.cloneWithRows(this.props.transitData)
     };
     this.onPress.bind(this);
   }
@@ -29,14 +32,17 @@ class RouteList extends Component {
   renderRow(rowData) {
       return (
         <View style={styles.row}>
-          <Text>=====================
-            {JSON.stringify(rowData)}</Text>
+          <Text>{Parser.getRouteStepsAsString(rowData)}</Text>
+          <Text>{moment.unix(Parser.getTransitStartTime(rowData)).format("HH:mm")}</Text>
+          <Text>{moment.unix(Parser.getTransitEndTime(rowData)).format("HH:mm")}</Text>
+          <Text>{moment.unix(Parser.getFirstLegStartTime(rowData)).format("HH:mm")}</Text>
+          <Text>{moment.unix(Parser.getLastLegEndTime(rowData)).format("HH:mm")}</Text>
+
         </View>
       );
   }
 
   render() {
-
     return (
       <View style={styles.container}>
         <ScrollView style={styles.scrollView}>

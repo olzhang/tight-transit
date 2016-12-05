@@ -1,12 +1,14 @@
 export default function ParseRoutes(response, routeList) {
-  for (var i = 0; i < response.routes.length; i++) {
-    var userRoutes = [];
+  console.log(response.routes.length);
+  // for (var i = 0; i < response.routes.length; i++) {
+    // var userRoutes = [];
     response.routes.forEach((e, i) => {
-      var currRoute = [];
-      userRoutes.push(currRoute);
+      let currRoute = [];
+      // userRoutes.push(currRoute);
+      routeList.push(currRoute);
       e.legs.forEach((leg, i) => {
 
-        var currLeg = {};
+        let currLeg = {};
         currRoute.push(currLeg);
         currLeg.steps = [];
 
@@ -16,7 +18,7 @@ export default function ParseRoutes(response, routeList) {
 
         leg.steps.forEach((step, i) => {
 
-          var currStep = {};
+          let currStep = {};
           if (step.travel_mode === "TRANSIT") {
             currStep.mode = "TRANSIT";
             currStep.name = step.transit_details.line.name;
@@ -55,8 +57,9 @@ export default function ParseRoutes(response, routeList) {
         });
       });
     });
-    routeList.push(userRoutes);
-  }
+    // routeList.push(userRoutes);
+  // }
+  console.log(routeList);
 }
 
 export function getRouteStepsAsString(route){
@@ -64,9 +67,14 @@ export function getRouteStepsAsString(route){
   for (var i = 0; i < route.length; i++){
     for (var j = 0; j < route[i].steps.length; j++){
       if (route[i].steps[j].mode == "TRANSIT"){
-        outString = outString + route[i].steps[j].routeNum + " ";
+        outString = outString + route[i].steps[j].routeNum + "";
       } else if (route[i].steps[j].mode == "WALKING"){
-        outString = outString + "W ";
+        outString = outString + "W";
+      } else { //error
+        outString = outString + "E"
+      }
+      if (i < route.length-1 || j < route[i].steps.length-1){
+        outString = outString + " > "
       }
     }
   }
@@ -85,7 +93,7 @@ export function getTransitStartTime(route){
 }
 
 export function getTransitEndTime(route) {
-  for (var i = 0; i < route.length; i++){
+  for (var i = route.length-1; i >= 0; i--){
     for (var j = route[i].steps.length-1; j >=0; j--){
       if (route[i].steps[j].mode == "TRANSIT"){
         return route[i].steps[j].arrivalTime;
