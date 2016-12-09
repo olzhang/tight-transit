@@ -21,9 +21,14 @@ class RouteSearch extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      from: 'UBC Bus Loop, Vancouver, BC V6T',
-      to: '9500 Glenlyon Parkway, Burnaby, BC',
+      // from: 'UBC Bus Loop, Vancouver, BC V6T',
+      from: 'Sperling / Burnaby Lake, Burnaby, BC',
+      // from: 'Downtown Vancouver, Vancouver, BC',
+      // to: '9500 Glenlyon Parkway, Burnaby, BC',
+      to: '8888 University Dr, Burnaby, BC V5A 1S6,',
       startTime: moment().format("YYYY-MM-DD HH:mm"),
+      deltaMins: 10,
+      nextMinutes: 120,
       errorMessage: ''
     };
     this.onGetRouteButtonPress.bind(this);
@@ -34,16 +39,28 @@ class RouteSearch extends Component {
   // }
 
   onGetRouteButtonPress() {
-    gMapsUrl = "https://maps.googleapis.com/maps/api/directions/json?mode=transit&alternatives=true&key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY&origin=";
+    let timesArray = [];
+    let beginTime = moment(this.state.startTime, "YYYY-MM-DD HH:mm").unix();
+    let endTime = moment.unix(beginTime).add(this.state.nextMinutes, 'minutes').unix();
+    let increment = this.state.deltaMins * 60;
+    for(var i = beginTime; i <= endTime; i += increment){
+      timesArray.push(i);
+    }
+    let numQueries = timesArray.length;
+    let gMapsUrl = "https://maps.googleapis.com/maps/api/directions/json?mode=transit&alternatives=true&key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY&origin=";
     gMapsUrl = gMapsUrl + `${this.state.from}&destination=${this.state.to}&departure_time=${moment(this.state.startTime, "YYYY-MM-DD HH:mm").unix()}`;
     gMapsUrl = gMapsUrl.replace(new RegExp(" ", 'g'), "+");
+    console.log(timesArray);
+
+
     fetch(gMapsUrl)
       .then(response => {
-        console.log(response);
+        // console.log(response);
         return response.json();
       })
       .then(responseJson => {
-          console.log(responseJson);
+          // console.log(responseJson);
+          console.log(JSON.stringify(responseJson));
           let routeList = [];
           ParseRoutes(responseJson, routeList);
           this.props.navigator.push({
@@ -55,6 +72,7 @@ class RouteSearch extends Component {
 // ToastAndroid.show(JSON.stringify(responseJson), ToastAndroid.LONG))
         })
       .catch((error) => {
+        console.log(error);
         error => this.setState({errorMessage: error.message});
       });
     ToastAndroid.show('Getting Route ....', ToastAndroid.SHORT)
@@ -69,14 +87,13 @@ class RouteSearch extends Component {
 
           onChangeText={text => this.setState({from: text})}
           value={this.state.from} />
-{/* placeholder="From" */}
+        {/* placeholder="From" */}
         <InputField
           name={"To"}
           onChangeText={text => this.setState({to: text})}
           value={this.state.to}  />
-{/* placeholder="To" */}
+        {/* placeholder="To" */}
         <Text style={styles.errorMessage}>{this.state.errorMessage}</Text>
-
         <DatePicker
           style={{width: 200}}
           date={this.state.startTime}
@@ -98,6 +115,14 @@ class RouteSearch extends Component {
           minuteInterval={10}
           onDateChange={(datetime) => {this.setState({startTime: datetime});}}
         />
+        <InputField
+          name={"Next Minutes"}
+          onChangeText={text => this.setState({nextMinutes: parseInt(text)})}
+          value={this.state.nextMinutes.toString()}  />
+        <InputField
+          name={"Minute Interval"}
+          onChangeText={text => this.setState({deltaMins: parseInt(text)})}
+          value={this.state.deltaMins.toString()}  />
         <Button style={styles.buttonStyle} text={'Get Route'} onPress={() => this.onGetRouteButtonPress()} />
       </View>
     );
