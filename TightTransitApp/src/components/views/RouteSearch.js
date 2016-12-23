@@ -27,8 +27,8 @@ class RouteSearch extends Component {
       // to: '9500 Glenlyon Parkway, Burnaby, BC',
       to: '8888 University Dr, Burnaby, BC V5A 1S6,',
       startTime: moment().format("YYYY-MM-DD HH:mm"),
-      deltaMins: 10,
-      nextMinutes: 120,
+      deltaMins: '10',
+      nextMinutes: '120',
       errorMessage: ''
     };
     this.onGetRouteButtonPress.bind(this);
@@ -41,8 +41,8 @@ class RouteSearch extends Component {
   onGetRouteButtonPress() {
     let timesArray = [];
     let beginTime = moment(this.state.startTime, "YYYY-MM-DD HH:mm").unix();
-    let endTime = moment.unix(beginTime).add(this.state.nextMinutes, 'minutes').unix();
-    let increment = this.state.deltaMins * 60;
+    let endTime = moment.unix(beginTime).add(parseInt(this.state.nextMinutes), 'minutes').unix();
+    let increment = parseInt(this.state.deltaMins) * 60;
     for(var i = beginTime; i <= endTime; i += increment){
       timesArray.push(i);
     }
@@ -117,12 +117,16 @@ class RouteSearch extends Component {
         />
         <InputField
           name={"Next Minutes"}
-          onChangeText={text => this.setState({nextMinutes: parseInt(text)})}
-          value={this.state.nextMinutes.toString()}  />
+          onChangeText={text => this.setState({nextMinutes: text})}
+          placeholder="next minutes"
+          keyboardType = 'numeric'
+          value={this.state.nextMinutes}  />
         <InputField
           name={"Minute Interval"}
-          onChangeText={text => this.setState({deltaMins: parseInt(text)})}
-          value={this.state.deltaMins.toString()}  />
+          onChangeText={text => this.setState({deltaMins: text})}
+          placeholder="minute interval"
+          keyboardType = 'numeric'
+          value={this.state.deltaMins} />
         <Button style={styles.buttonStyle} text={'Get Route'} onPress={() => this.onGetRouteButtonPress()} />
       </View>
     );

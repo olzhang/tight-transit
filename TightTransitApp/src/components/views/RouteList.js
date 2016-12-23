@@ -31,28 +31,30 @@ class RouteList extends Component {
 
   renderRow(rowData) {
       return (
+        //TODO: change it to a touchablehighlight
         <View style={styles.row}>
+          <View style={styles.startTime}>
+            <Text>{moment.unix(Parser.getTransitStartTime(rowData)).format("HH:mm")}</Text>
+          </View>
           <Text>{Parser.getRouteStepsAsString(rowData)}</Text>
-          <Text>{moment.unix(Parser.getTransitStartTime(rowData)).format("HH:mm")}</Text>
-          <Text>{moment.unix(Parser.getTransitEndTime(rowData)).format("HH:mm")}</Text>
+          {/*<Text>{moment.unix(Parser.getTransitEndTime(rowData)).format("HH:mm")}</Text>
           <Text>{moment.unix(Parser.getFirstLegStartTime(rowData)).format("HH:mm")}</Text>
-          <Text>{moment.unix(Parser.getLastLegEndTime(rowData)).format("HH:mm")}</Text>
-
+          <Text>{moment.unix(Parser.getLastLegEndTime(rowData)).format("HH:mm")}</Text>*/}
         </View>
       );
   }
 
   render() {
     return (
-      <View style={styles.container}>
-        <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView}>
           <ListView
             dataSource={this.state.dataSource}
-            renderRow={(rowData) => this.renderRow(rowData)}
+            renderRow={rowData => this.renderRow(rowData)}
           />
-          </ScrollView>
-        <Button style={styles.buttonStyle} text={'Go Back'} onPress={() => this.onPress()} />
-      </View>
+          <View style={styles.footerContainer}>
+            <Button style={styles.buttonStyle} text={'Go Back'} onPress={() => this.onPress()} />
+          </View>
+      </ScrollView>
     );
   }
 }
@@ -83,12 +85,26 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 5,
     borderColor: 'black',
-    margin: 10
+    margin: 10,
+
+  },
+  rowTimeContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 5,
+    borderColor: 'black',
+    margin: 10,
   },
   rowText: {
     flex: 1,
     alignSelf: 'center',
     fontSize: 20
+  },
+  footerContainer: {
+    justifyContent: 'center',
+    alignItems: 'center'
   }
 });
 
