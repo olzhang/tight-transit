@@ -10,6 +10,7 @@ import {
 import DatePicker from 'react-native-datepicker';
 import ParseRoutes from '../../utils/parser';
 var moment = require('moment');
+var sleep = require('sleep');
 
 //import GoogleMapsService from '@google/maps';
 
@@ -25,7 +26,7 @@ class RouteSearch extends Component {
       from: 'Sperling / Burnaby Lake, Burnaby, BC',
       // from: 'Downtown Vancouver, Vancouver, BC',
       // to: '9500 Glenlyon Parkway, Burnaby, BC',
-      to: '8888 University Dr, Burnaby, BC V5A 1S6,',
+      to: '8888 University Dr, Burnaby, BC V5A 1S6',
       startTime: moment().format("YYYY-MM-DD HH:mm"),
       deltaMins: '10',
       nextMinutes: '120',
@@ -39,42 +40,74 @@ class RouteSearch extends Component {
   // }
 
   onGetRouteButtonPress() {
-    let timesArray = [];
+    let baseGMapsUrl = "https://maps.googleapis.com/maps/api/directions/json?mode=transit&alternatives=true&key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY&origin=";
+    baseGMapsUrl = baseGMapsUrl + `${this.state.from}&destination=${this.state.to}`;
+    baseGMapsUrl = baseGMapsUrl.replace(new RegExp(" ", 'g'), "+");
+    gMapsUrl = baseGMapsUrl + `&departure_time=${moment(this.state.startTime, "YYYY-MM-DD HH:mm").unix()}`;
+
+    let gMapsUrlArray = [];
     let beginTime = moment(this.state.startTime, "YYYY-MM-DD HH:mm").unix();
     let endTime = moment.unix(beginTime).add(parseInt(this.state.nextMinutes), 'minutes').unix();
     let increment = parseInt(this.state.deltaMins) * 60;
     for(var i = beginTime; i <= endTime; i += increment){
-      timesArray.push(i);
+      let pushGMapsUrl = baseGMapsUrl + `&departure_time=${i}`;
+      gMapsUrlArray.push(pushGMapsUrl );
     }
-    let numQueries = timesArray.length;
-    let gMapsUrl = "https://maps.googleapis.com/maps/api/directions/json?mode=transit&alternatives=true&key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY&origin=";
-    gMapsUrl = gMapsUrl + `${this.state.from}&destination=${this.state.to}&departure_time=${moment(this.state.startTime, "YYYY-MM-DD HH:mm").unix()}`;
-    gMapsUrl = gMapsUrl.replace(new RegExp(" ", 'g'), "+");
-    console.log(timesArray);
 
+    // let numQueries = timesArray.length;
 
-    fetch(gMapsUrl)
-      .then(response => {
-        // console.log(response);
-        return response.json();
-      })
-      .then(responseJson => {
-          // console.log(responseJson);
-          console.log(JSON.stringify(responseJson));
-          let routeList = [];
-          ParseRoutes(responseJson, routeList);
-          this.props.navigator.push({
-            name: 'routeList',
-            passProps: {
-              transitData: routeList
-            }
-          });
-// ToastAndroid.show(JSON.stringify(responseJson), ToastAndroid.LONG))
-        })
-      .catch((error) => {
-        console.log(error);
-        error => this.setState({errorMessage: error.message});
+    console.log(gMapsUrlArray);
+
+    var guid = 0;
+    function run() {
+      guid++;
+      var id = guid;
+      let rand = (Math.random() * 1.5 | 0) * 1000;
+      return new Promise(resolve => {
+        // resolve in a random amount of time
+        setTimeout(function () {
+          console.log(id);
+          resolve(id);
+          console.log(rand);
+        }, rand);
       });
+    }
+
+    var promise = Array.from({ length: 10 }).reduce(function (acc) {
+      return acc.then(function (res) {
+        sleep.sleep(2);
+        return run().then(function (result) {
+          res.push(result);
+          return res;
+        });
+      });
+    }, Promise.resolve([]));
+
+    promise.then(console.log("done promise chain"));
+
+
+//     fetch(gMapsUrl)
+//       .then(response => {
+//         // console.log(response);
+//         return response.json();
+//       })
+//       .then(responseJson => {
+//           // console.log(responseJson);
+//           console.log(JSON.stringify(responseJson));
+//           let routeList = [];
+//           ParseRoutes(responseJson, routeList);
+//           this.props.navigator.push({
+//             name: 'routeList',
+//             passProps: {
+//               transitData: routeList
+//             }
+//           });
+// // ToastAndroid.show(JSON.stringify(responseJson), ToastAndroid.LONG))
+//         })
+//       .catch((error) => {
+//         console.log(error);
+//         error => this.setState({errorMessage: error.message});
+//       });
     ToastAndroid.show('Getting Route ....', ToastAndroid.SHORT)
   }
 
