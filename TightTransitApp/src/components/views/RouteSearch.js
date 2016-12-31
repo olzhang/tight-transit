@@ -10,7 +10,7 @@ import {
 import DatePicker from 'react-native-datepicker';
 import ParseRoutes from '../../utils/parser';
 var moment = require('moment');
-var sleep = require('sleep');
+// var sleep = require('sleep');
 
 //import GoogleMapsService from '@google/maps';
 
@@ -40,7 +40,7 @@ class RouteSearch extends Component {
   // }
 
   onGetRouteButtonPress() {
-    let baseGMapsUrl = "https://maps.googleapis.com/maps/api/directions/json?mode=transit&alternatives=true&key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY&origin=";
+    let baseGMapsUrl = "https://maps.googleapis.com/maps/api/directions/json?mode=transit&alternatives=true&key=AIzaSyCXaTxwsc4s2MPCY8xFIwclCUzg5u6TEkY&origin=";
     baseGMapsUrl = baseGMapsUrl + `${this.state.from}&destination=${this.state.to}`;
     baseGMapsUrl = baseGMapsUrl.replace(new RegExp(" ", 'g'), "+");
     gMapsUrl = baseGMapsUrl + `&departure_time=${moment(this.state.startTime, "YYYY-MM-DD HH:mm").unix()}`;
@@ -58,32 +58,33 @@ class RouteSearch extends Component {
 
     console.log(gMapsUrlArray);
 
-    var guid = 0;
-    function run() {
-      guid++;
-      var id = guid;
-      let rand = (Math.random() * 1.5 | 0) * 1000;
-      return new Promise(resolve => {
-        // resolve in a random amount of time
-        setTimeout(function () {
-          console.log(id);
-          resolve(id);
-          console.log(rand);
-        }, rand);
-      });
-    }
-
-    var promise = Array.from({ length: 10 }).reduce(function (acc) {
+    // var guid = 0;
+    // function run() {
+    //   guid++;
+    //   var id = guid;
+    //   let rand = (Math.random() * 1.5 | 0) * 1000;
+    //   return new Promise(resolve => {
+    //     // resolve in a random amount of time
+    //     setTimeout(function () {
+    //       console.log(id);
+    //       resolve(id);
+    //       console.log(rand);
+    //     }, rand);
+    //   });
+    // }
+    var promise = gMapsUrlArray.reduce((acc, currentValue) => {
       return acc.then(function (res) {
-        sleep.sleep(2);
-        return run().then(function (result) {
-          res.push(result);
-          return res;
+        return fetch(currentValue).then(response => {
+          return response.json();
+        }).then(responseJson => {
+          console.log(JSON.stringify(responseJson));
+        }).catch(error => {
+          console.log(error);
         });
       });
     }, Promise.resolve([]));
 
-    promise.then(console.log("done promise chain"));
+    promise.then(console.log);
 
 
 //     fetch(gMapsUrl)
