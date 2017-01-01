@@ -8,10 +8,10 @@ import {
   ListView
 } from 'react-native';
 import DatePicker from 'react-native-datepicker';
-import ParseRoutes from '../../utils/parser';
+import ParseRoutes, { isSameRoute, sumLegTimes } from '../../utils/parser';
 var moment = require('moment');
 // var sleep = require('sleep');
-
+var _ = require('lodash');
 //import GoogleMapsService from '@google/maps';
 
 import InputField from '../common/InputField';
@@ -51,7 +51,7 @@ class RouteSearch extends Component {
     let increment = parseInt(this.state.deltaMins) * 60;
     for(var i = beginTime; i <= endTime; i += increment){
       let pushGMapsUrl = baseGMapsUrl + `&departure_time=${i}`;
-      gMapsUrlArray.push(pushGMapsUrl );
+      gMapsUrlArray.push(pushGMapsUrl);
     }
 
     // let numQueries = timesArray.length;
@@ -72,19 +72,36 @@ class RouteSearch extends Component {
     //     }, rand);
     //   });
     // }
+    let routeList = [];
+    
     var promise = gMapsUrlArray.reduce((acc, currentValue) => {
       return acc.then(function (res) {
         return fetch(currentValue).then(response => {
           return response.json();
         }).then(responseJson => {
-          console.log(JSON.stringify(responseJson));
+          // console.log(JSON.stringify(responseJson));
+          ParseRoutes(responseJson, routeList);
         }).catch(error => {
           console.log(error);
+          ToastAndroid.show(error, ToastAndroid.LONG);
         });
       });
     }, Promise.resolve([]));
 
-    promise.then(console.log);
+    promise.then(() => {
+      console.log("done");
+      uniqueRoutes = _.uniqWith(routeList, isSameRoute);
+      uniqueRoutesSortedByTime = _.sortBy(uniqueRoutes, sumLegTimes);
+      ToastAndroid.show('Found Route!', ToastAndroid.SHORT);
+      this.props.navigator.push({
+        name: 'routeList',
+        passProps: {
+          transitData: uniqueRoutesSortedByTime
+        }
+      });
+    });
+
+    ToastAndroid.show('Getting Route ....', ToastAndroid.LONG);
 
 
 //     fetch(gMapsUrl)
@@ -109,7 +126,6 @@ class RouteSearch extends Component {
 //         console.log(error);
 //         error => this.setState({errorMessage: error.message});
 //       });
-    ToastAndroid.show('Getting Route ....', ToastAndroid.SHORT)
   }
 
   render() {

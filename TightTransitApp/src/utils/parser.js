@@ -1,5 +1,5 @@
 export default function ParseRoutes(response, routeList) {
-  console.log(response.routes.length);
+  // console.log(response.routes.length);
   // for (var i = 0; i < response.routes.length; i++) {
     // var userRoutes = [];
     response.routes.forEach((e, i) => {
@@ -59,7 +59,61 @@ export default function ParseRoutes(response, routeList) {
     });
     // routeList.push(userRoutes);
   // }
-  console.log(routeList);
+  // console.log(routeList.length);
+}
+
+export function isSameLeg(leg1, leg2)
+{
+  // base same leg on same bus route, same arrival/depart time for each route
+  var leg1TransitSteps = [];
+  var leg2TransitSteps = [];
+
+  leg1.steps.forEach((step, index) => {
+    if (step.mode == "TRANSIT"){
+      leg1TransitSteps.push({
+        departureTime: step.departureTime,
+        arrivalTime: step.arrivalTime,
+        routeNum: step.routeNum,
+      });
+    }
+  });
+  leg2.steps.forEach((step, index) => {
+    if (step.mode == "TRANSIT"){
+      leg2TransitSteps.push({
+        departureTime: step.departureTime,
+        arrivalTime: step.arrivalTime,
+        routeNum: step.routeNum,
+      });
+    }
+  });
+
+  if (leg1TransitSteps.length !== leg2TransitSteps.length) return false;
+
+  for (var i=0; i<leg1TransitSteps.length; i++) {
+    if (JSON.stringify(leg1TransitSteps[i]) != JSON.stringify(leg2TransitSteps[i])){
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function isSameRoute(route1, route2) {
+  if (route1.length != route2.length) return false;
+  for (var i = 0; i < route1.length; i++) {
+    if (!isSameLeg(route1[i], route2[i])){
+      return false;
+    }
+  }
+  return true;
+}
+
+export function sumLegTimes(route){
+  var retVal = 0;
+  route.forEach((leg, index) => {
+    retVal += leg.duration;
+  });
+  return retVal;
 }
 
 export function getRouteStepsAsString(route){
