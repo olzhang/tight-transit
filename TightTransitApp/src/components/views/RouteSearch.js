@@ -35,10 +35,6 @@ class RouteSearch extends Component {
     this.onGetRouteButtonPress.bind(this);
   }
 
-  // urlConstructor(to, from) {
-  //   thi
-  // }
-
   onGetRouteButtonPress() {
     let baseGMapsUrl = "https://maps.googleapis.com/maps/api/directions/json?mode=transit&alternatives=true&key=AIzaSyCXaTxwsc4s2MPCY8xFIwclCUzg5u6TEkY&origin=";
     baseGMapsUrl = baseGMapsUrl + `${this.state.from}&destination=${this.state.to}`;
@@ -73,7 +69,7 @@ class RouteSearch extends Component {
     //   });
     // }
     let routeList = [];
-    
+
     var promise = gMapsUrlArray.reduce((acc, currentValue) => {
       return acc.then(function (res) {
         return fetch(currentValue).then(response => {
