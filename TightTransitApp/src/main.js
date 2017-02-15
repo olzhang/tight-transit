@@ -6,10 +6,12 @@ import {
 
 import RouteSearch from './components/views/RouteSearch';
 import RouteList from './components/views/RouteList';
+import RouteDetail from './components/views/RouteDetail';
 
 const ROUTES = {
   routeSearch: RouteSearch,
-  routeList: RouteList
+  routeList: RouteList,
+  routeDetail: RouteDetail 
 }
 
 class Main extends Component {

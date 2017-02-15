@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import {
+  TouchableHighlight,
   StyleSheet,
   Text,
   View,
@@ -9,6 +10,7 @@ import {
 } from 'react-native';
 
 import Button from '../common/Button';
+import RouteTile from '../common/RouteTile';
 import * as Parser from '../../utils/parser';
 
 var moment = require('moment');
@@ -21,46 +23,29 @@ class RouteList extends Component {
     this.state = {
       dataSource: ds.cloneWithRows(this.props.transitData)
     };
-    this.onPress.bind(this);
   }
 
-
-  onPress() {
-    this.props.navigator.immediatelyResetRouteStack([{name: 'routeSearch'}]);
+  onPressGoBack() {
+    this.props.navigator.pop(0);
   }
 
-  renderRow(rowData) {
-      return (
-        //TODO: change it to a touchablehighlight
-        <View style={styles.row}>
-          <View style={styles.startTime}>
-            <Text>{moment.unix(Parser.getTransitStartTime(rowData)).format("HH:mm")}</Text>
-          </View>
-          <Text>{Parser.getRouteStepsAsString(rowData)}</Text>
-          {/*<Text>{moment.unix(Parser.getTransitEndTime(rowData)).format("HH:mm")}</Text>
-          <Text>{moment.unix(Parser.getFirstLegStartTime(rowData)).format("HH:mm")}</Text>
-          <Text>{moment.unix(Parser.getLastLegEndTime(rowData)).format("HH:mm")}</Text>*/}
-        </View>
-      );
-  }
+  renderFooter() {
+    return (  
+      <View style={styles.footerContainer}>
+        <Button style={styles.buttonStyle} text={'Go Back'} onPress={() => this.onPressGoBack()} />
+      </View>
+    );
+}
 
   render() {
     return (
-      <ScrollView style={styles.scrollView}>
-          <ListView
-            dataSource={this.state.dataSource}
-            renderRow={rowData => this.renderRow(rowData)}
-          />
-          <View style={styles.footerContainer}>
-            <Button style={styles.buttonStyle} text={'Go Back'} onPress={() => this.onPress()} />
-          </View>
-      </ScrollView>
+      <ListView
+        dataSource={this.state.dataSource}
+        renderRow={rowData => <RouteTile data={rowData} navigator={this.props.navigator} />}
+        renderFooter={() => this.renderFooter()}
+      />
     );
   }
-}
-
-function displayTransitData(dataList){
-
 }
 
 const styles = StyleSheet.create({
@@ -71,36 +56,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'white'
   },
   scrollView: {
-    flex: 1,
-    backgroundColor: '#89cff0'
+    flex: 1
   },
   buttonStyle: {
     height: 40,
     width: 100
-  },
-  row: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 5,
-    borderColor: 'black',
-    margin: 10,
-
-  },
-  rowTimeContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 5,
-    borderColor: 'black',
-    margin: 10,
-  },
-  rowText: {
-    flex: 1,
-    alignSelf: 'center',
-    fontSize: 20
   },
   footerContainer: {
     justifyContent: 'center',

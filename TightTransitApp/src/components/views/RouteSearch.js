@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import DatePicker from 'react-native-datepicker';
 import ParseRoutes, { isSameRoute, sumLegTimes } from '../../utils/parser';
-var moment = require('moment');
-// var sleep = require('sleep');
-var _ = require('lodash');
+import moment from 'moment';
+import uniqWith from 'lodash/uniqWith';
+import sortBy from 'lodash/sortBy';
 //import GoogleMapsService from '@google/maps';
 
 import InputField from '../common/InputField';
@@ -54,23 +54,9 @@ class RouteSearch extends Component {
 
     console.log(gMapsUrlArray);
 
-    // var guid = 0;
-    // function run() {
-    //   guid++;
-    //   var id = guid;
-    //   let rand = (Math.random() * 1.5 | 0) * 1000;
-    //   return new Promise(resolve => {
-    //     // resolve in a random amount of time
-    //     setTimeout(function () {
-    //       console.log(id);
-    //       resolve(id);
-    //       console.log(rand);
-    //     }, rand);
-    //   });
-    // }
     let routeList = [];
 
-    var promise = gMapsUrlArray.reduce((acc, currentValue) => {
+    let promise = gMapsUrlArray.reduce((acc, currentValue) => {
       return acc.then(function (res) {
         return fetch(currentValue).then(response => {
           return response.json();
@@ -86,8 +72,8 @@ class RouteSearch extends Component {
 
     promise.then(() => {
       console.log("done");
-      uniqueRoutes = _.uniqWith(routeList, isSameRoute);
-      uniqueRoutesSortedByTime = _.sortBy(uniqueRoutes, sumLegTimes);
+      uniqueRoutes = uniqWith(routeList, isSameRoute);
+      uniqueRoutesSortedByTime = sortBy(uniqueRoutes, sumLegTimes);
       ToastAndroid.show('Found Route!', ToastAndroid.SHORT);
       this.props.navigator.push({
         name: 'routeList',
@@ -95,33 +81,11 @@ class RouteSearch extends Component {
           transitData: uniqueRoutesSortedByTime
         }
       });
-    });
+    })
+    .catch(console.log);
 
     ToastAndroid.show('Getting Route ....', ToastAndroid.LONG);
 
-
-//     fetch(gMapsUrl)
-//       .then(response => {
-//         // console.log(response);
-//         return response.json();
-//       })
-//       .then(responseJson => {
-//           // console.log(responseJson);
-//           console.log(JSON.stringify(responseJson));
-//           let routeList = [];
-//           ParseRoutes(responseJson, routeList);
-//           this.props.navigator.push({
-//             name: 'routeList',
-//             passProps: {
-//               transitData: routeList
-//             }
-//           });
-// // ToastAndroid.show(JSON.stringify(responseJson), ToastAndroid.LONG))
-//         })
-//       .catch((error) => {
-//         console.log(error);
-//         error => this.setState({errorMessage: error.message});
-//       });
   }
 
   render() {
