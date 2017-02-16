@@ -4,7 +4,6 @@ import {
   Text,
   View,
   TextInput,
-  ToastAndroid,
   ListView
 } from 'react-native';
 import DatePicker from 'react-native-datepicker';
@@ -66,7 +65,6 @@ class RouteSearch extends Component {
           ParseRoutes(responseJson, routeList);
         }).catch(error => {
           console.log(error);
-          ToastAndroid.show(error, ToastAndroid.LONG);
         });
       });
     }, Promise.resolve([]));
@@ -75,7 +73,6 @@ class RouteSearch extends Component {
       console.log("done");
       uniqueRoutes = uniqWith(routeList, isSameRoute);
       uniqueRoutesSortedByTime = sortBy(uniqueRoutes, sumLegTimes);
-      ToastAndroid.show('Found Route!', ToastAndroid.SHORT);
       this.props.navigator.push({
         name: 'routeList',
         passProps: {
@@ -84,9 +81,6 @@ class RouteSearch extends Component {
       });
     })
     .catch(console.log);
-
-    ToastAndroid.show('Getting Route ....', ToastAndroid.LONG);
-
   }
 
   render() {

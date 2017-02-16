@@ -3,8 +3,7 @@ import {
     View,
     StyleSheet,
     Text,
-    TouchableHighlight,
-    ToastAndroid
+    TouchableHighlight
 } from 'react-native';
 
 import * as Parser from '../../utils/parser';
