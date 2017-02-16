@@ -68,7 +68,8 @@ class RouteDetail extends Component {
 
 styles = {
   container: {
-    flex: 1
+    flex: 1,
+    paddingTop: 20
   },
   sectionContainer: {
     flex: 2,

@@ -8,14 +8,15 @@ import {
   ListView
 } from 'react-native';
 import DatePicker from 'react-native-datepicker';
-import ParseRoutes, { isSameRoute, sumLegTimes } from '../../utils/parser';
 import moment from 'moment';
 import uniqWith from 'lodash/uniqWith';
 import sortBy from 'lodash/sortBy';
-//import GoogleMapsService from '@google/maps';
 
 import InputField from '../common/InputField';
 import Button from '../common/Button';
+
+import ParseRoutes, { isSameRoute, sumLegTimes } from '../../utils/parser';
+import { GOOGLE_MAPS_API_KEY } from '../../utils/resources';
 
 class RouteSearch extends Component {
 
@@ -36,7 +37,7 @@ class RouteSearch extends Component {
   }
 
   onGetRouteButtonPress() {
-    let baseGMapsUrl = "https://maps.googleapis.com/maps/api/directions/json?mode=transit&alternatives=true&key=AIzaSyCXaTxwsc4s2MPCY8xFIwclCUzg5u6TEkY&origin=";
+    let baseGMapsUrl = `https://maps.googleapis.com/maps/api/directions/json?mode=transit&alternatives=true&key=${GOOGLE_MAPS_API_KEY}&origin=`;
     baseGMapsUrl = baseGMapsUrl + `${this.state.from}&destination=${this.state.to}`;
     baseGMapsUrl = baseGMapsUrl.replace(new RegExp(" ", 'g'), "+");
     gMapsUrl = baseGMapsUrl + `&departure_time=${moment(this.state.startTime, "YYYY-MM-DD HH:mm").unix()}`;
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
   },
   buttonStyle: {
     height: 40,
-    width: 100
+    width: 150
   }
 });
 

@@ -53,7 +53,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'black'
+    borderColor: 'black',
+    paddingTop: 12,
+    paddingBottom: 12
   }
 });
 

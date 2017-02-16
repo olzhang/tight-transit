@@ -29,17 +29,25 @@ class RouteList extends Component {
     this.props.navigator.pop(0);
   }
 
+
+  renderHeader() {
+    return (  
+      <View style={styles.headerContainer}></View>
+    );
+  }
+
   renderFooter() {
     return (  
       <View style={styles.footerContainer}>
         <Button style={styles.buttonStyle} text={'Go Back'} onPress={() => this.onPressGoBack()} />
       </View>
     );
-}
+  }
 
   render() {
     return (
       <ListView
+        renderHeader={() => this.renderHeader()}
         dataSource={this.state.dataSource}
         renderRow={rowData => <RouteTile data={rowData} navigator={this.props.navigator} />}
         renderFooter={() => this.renderFooter()}
@@ -61,6 +69,9 @@ const styles = StyleSheet.create({
   buttonStyle: {
     height: 40,
     width: 100
+  },
+  headerContainer: {
+    paddingTop: 20
   },
   footerContainer: {
     justifyContent: 'center',
