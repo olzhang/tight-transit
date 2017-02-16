@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Directions service</title>
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 50%;
+        width: 90%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #floating-panel {
+        position: absolute;
+        top: 10px;
+        left: 25%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+      #directions{
+        padding-top: 1px;
+      }
+      table, th, td{
+        border:1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="floating-panel">
+    <b>Start: </b>
+    <select id="start">
+      <option value="UBC Bus Loop, Vancouver, BC V6T">UBC</option>
+      <option value="3761 Kincaid St, Burnaby, BC">Kincaid at Smith</option>
+      <option value="vancouver, bc">Vancouver</option>
+    </select>
+    <b>End: </b>
+    <select id="end">
+      <option value="UBC Bus Loop, Vancouver, BC V6T">UBC</option>
+      <option value="3761 Kincaid St, Burnaby, BC">Kincaid at Smith</option>
+      <option value="coquitlam, bc">Coquitlam</option>
+      <option value="5011 Granville Ave, Richmond, BC">Granville at Railway</option>
+      <option value="9500 Glenlyon Parkway, Burnaby, BC">Samsung</option>
+      <option value="Burnaby, BC V5H 4M3">Metrotown Stn</option>
+    </select>
+    </div>
+    <div id="map"></div>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="parsexml.js"></script>
+    <script src="xml2json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.2/moment.js"></script>
+    <!-- <script src="lodash.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/lodash/4.16.6/lodash.min.js"></script>
+    <script>
+      var tl_api_key = "TL_API_KEY";
+      var map;
+
+      function sumLegTimes(route){
+        var retVal = 0;
+        route.forEach((leg, index) => {
+          retVal += leg.duration;
+        });
+        return retVal;
+      }
+
+      function getRouteStepsAsString(route){
+        var outString = "";
+        for (var i = 0; i < route.length; i++){
+          for (var j = 0; j < route[i].steps.length; j++){
+            if (route[i].steps[j].mode == "TRANSIT"){
+              outString = outString + route[i].steps[j].routeNum + " ";
+            } else if (route[i].steps[j].mode == "WALKING"){
+              outString = outString + "W ";
+            }
+          }
+        }
+        return outString;
+      }
+
+      function getTransitStartTime(route){
+        for (var i = 0; i < route.length; i++){
+          for (var j = 0; j < route[i].steps.length; j++){
+            if (route[i].steps[j].mode == "TRANSIT"){
+              return route[i].steps[j].departureTime;
+            }
+          }
+        }
+        return -1;
+      }
+
+      function getTransitEndTime(route) {
+        for (var i = 0; i < route.length; i++){
+          for (var j = route[i].steps.length-1; j >=0; j--){
+            if (route[i].steps[j].mode == "TRANSIT"){
+              return route[i].steps[j].arrivalTime;
+            }
+          }
+        }
+        return -1;
+      }
+
+      function getFirstLegStartTime(route) {
+        for (var i = 0; i < route.length; i++) {
+          return route[i].departureTime;
+        }
+        return -1;
+      }
+
+      function getLastLegEndTime(route) {
+        var retStart = -1;
+        for (var i = route.length-1; i >=0; i--){
+          return route[i].arrivalTime;
+        }
+        return -1;
+      }
+
+      function outputStrTimeRange (startEpoch, endEpoch) {
+        var momentEnd = moment(endEpoch);
+        var momentDiff = momentEnd.diff(moment(startEpoch));
+        var momentDuration = moment.duration(momentDiff);
+        var stringRange = Math.floor(momentDuration.asHours()) + moment.utc(momentDiff).format(":mm:ss");
+        return stringRange;
+      }
+
+      function isSameLeg(leg1, leg2)
+      {
+        // base same leg on same bus route, same arrival/depart time for each route
+        var leg1TransitSteps = [];
+        var leg2TransitSteps = [];
+
+        leg1.steps.forEach((step, index) => {
+          if (step.mode == "TRANSIT"){
+            leg1TransitSteps.push({
+              departureTime: step.departureTime,
+              arrivalTime: step.arrivalTime,
+              routeNum: step.routeNum,
+            });
+          }
+        });
+        leg2.steps.forEach((step, index) => {
+          if (step.mode == "TRANSIT"){
+            leg2TransitSteps.push({
+              departureTime: step.departureTime,
+              arrivalTime: step.arrivalTime,
+              routeNum: step.routeNum,
+            });
+          }
+        });
+
+        if (leg1TransitSteps.length !== leg2TransitSteps.length) return false;
+
+        for (var i=0; i<leg1TransitSteps.length; i++) {
+          if (JSON.stringify(leg1TransitSteps[i]) != JSON.stringify(leg2TransitSteps[i])){
+            return false;
+          }
+        }
+
+        return true;
+      }
+
+      function isSameRoute(route1, route2) {
+        if (route1.length != route2.length) return false;
+        for (var i = 0; i < route1.length; i++) {
+          if (!isSameLeg(route1[i], route2[i])){
+            return false;
+          }
+        }
+        return true;
+      }
+
+      function printRoutes(routes, tableID) {
+        tableID = (tableID === undefined) ? "routeoutput" : tableID;
+        routes.forEach((route, index) => {
+          let time =  (new Date).clearTime()
+                                .addSeconds(sumLegTimes(route))
+                                .toString('HH:mm:ss');
+
+        });
+
+      }
+
+      function parseRoutes(response, routeList) {
+        for (var i = 0; i < response.routes.length; i++) {
+          var userRoutes = [];
+          response.routes.forEach((e, i) => {
+            var currRoute = [];
+            userRoutes.push(currRoute);
+            e.legs.forEach((leg, i) => {
+
+              var currLeg = {};
+              currRoute.push(currLeg);
+              currLeg.steps = [];
+
+              currLeg.duration = leg.duration.value;
+              currLeg.departureTime = leg.departure_time.value;
+              currLeg.arrivalTime = leg.arrival_time.value;
+
+              leg.steps.forEach((step, i) => {
+
+                var currStep = {};
+                if (step.travel_mode === "TRANSIT") {
+                  currStep.mode = "TRANSIT";
+                  currStep.name = step.transit.line.name;
+                  currStep.departureStop = {};
+                  currStep.departureStop.lat = step.transit.departure_stop.location.lat();
+                  currStep.departureStop.lng = step.transit.departure_stop.location.lng();
+                  currStep.departureStop.name = step.transit.departure_stop.name;
+                  currStep.departureTime = step.transit.departure_time.value;
+                  currStep.arrivalStop = {}
+                  currStep.arrivalStop.lat = step.transit.arrival_stop.location.lat();
+                  currStep.arrivalStop.lng = step.transit.arrival_stop.location.lng();
+                  currStep.arrivalStop.name = step.transit.arrival_stop.name;
+                  currStep.arrivalTime = step.transit.arrival_time.value;
+                  currStep.headSign = step.transit.headsign;
+                  currStep.routeNum = step.transit.line.short_name;
+                  currLeg.steps.push(currStep);
+                } else if (step.travel_mode === "WALKING") {
+                  currStep.mode = "WALKING";
+                  currStep.walkingSteps = [];
+                  step.steps.forEach((walkingStep, i) => {
+                    currWalkingStep = {};
+                    currWalkingStep.distance = walkingStep.distance;
+                    currWalkingStep.duration = walkingStep.duration.value;
+                    currWalkingStep.instructions = walkingStep.instructions;
+                    currWalkingStep.fromLocn = {};
+                    currWalkingStep.fromLocn.lat = walkingStep.start_location.lat();
+                    currWalkingStep.fromLocn.lng = walkingStep.start_location.lng();
+                    currWalkingStep.toLocn = {};
+                    currWalkingStep.toLocn.lat = walkingStep.end_location.lat();
+                    currWalkingStep.toLocn.lng = walkingStep.end_location.lng();
+                    currStep.walkingSteps.push(currWalkingStep);
+                  })
+                  currLeg.steps.push(currStep);
+                }
+
+              });
+            });
+          });
+          routeList.push(userRoutes);
+        }
+      }
+      function initMap() {
+        var directionsService = new google.maps.DirectionsService;
+        var directionsDisplay = new google.maps.DirectionsRenderer;
+        map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 7,
+          center: {
+            lat: 49.2827,
+            lng: -123.1207
+          }
+        });
+        directionsDisplay.setMap(map);
+
+        var onChangeHandler = function() {
+          var year = parseInt(document.getElementById("year").value);
+          var month = parseInt(document.getElementById("month").value);
+          var day = parseInt(document.getElementById("day").value);
+          var hour = parseInt(document.getElementById("hour").value);
+          var min = parseInt(document.getElementById("min").value);
+          var nexthours = parseInt(document.getElementById("nexthours").value);
+          var mininterval = parseInt(document.getElementById("mininterval").value);
+          var nextmins = nexthours * 60;
+          var apiWaitTime = 0;
+          var allTehRoutes = [];
+          var routeArr = [];
+          var apiCallsRemaining = 0;
+          for(var i = 0; i <= nextmins + mininterval; i += mininterval){
+            let theDate = new Date(year, month + 1, day, hour - 7, min + i);
+            apiCallsRemaining++;
+            setTimeout(function() {
+              calculateAndDisplayRoute(directionsService, directionsDisplay, theDate, allTehRoutes);
+              apiCallsRemaining--;
+              if (apiCallsRemaining <= 0){
+                allTehRoutes.forEach((routes, index) => {
+                  routeArr.push.apply(routeArr, routes);
+                });
+                uniqueRoutes = _.uniqWith(routeArr, isSameRoute);
+                uniqueRoutesSortedByTime = _.sortBy(uniqueRoutes, sumLegTimes)
+                uniqueRoutesSortedByTime.forEach((route, index) => {
+                  route.transitStartTime = getTransitStartTime(route);
+                  route.transitEndTime = getTransitEndTime(route);
+                  route.startTime = getFirstLegStartTime(route);
+                  route.endTime = getLastLegEndTime(route);
+                  route.transitTime = outputStrTimeRange(route.transitStartTime, route.transitEndTime);
+                  route.totalTime = outputStrTimeRange(route.startTime, route.endTime);
+                  route.routeString = getRouteStepsAsString(route);
+
+                  var table = document.getElementById("routeoutput");
+                  var row = table.insertRow(-1);
+                  var cell1 = row.insertCell(0);
+                  var cell2 = row.insertCell(1);
+                  var cell3 = row.insertCell(2);
+                  var cell4 = row.insertCell(3);
+                  var cell5 = row.insertCell(4);
+                  var cell6 = row.insertCell(5);
+                  var cell7 = row.insertCell(6);
+                  cell1.innerHTML = route.routeString;
+                  cell2.innerHTML = moment(route.startTime).format("HH:mm");
+                  cell3.innerHTML = moment(route.endTime).format("HH:mm");
+                  cell4.innerHTML = route.totalTime;
+                  cell5.innerHTML = moment(route.transitStartTime).format("HH:mm");
+                  cell6.innerHTML = moment(route.transitEndTime).format("HH:mm");
+                  cell7.innerHTML = route.transitTime;
+                });
+                console.log(uniqueRoutesSortedByTime);
+              }
+            }, apiWaitTime + i * 650 / mininterval);
+            apiWaitTime += 100;
+          }
+        };
+        document.getElementById('start').addEventListener('change', onChangeHandler);
+        document.getElementById('end').addEventListener('change', onChangeHandler);
+      }
+
+      String.prototype.cleanName = function() {
+        return this.toLowerCase().replace(/[^a-zA-Z0-9  ]+/g, "");
+      }
+
+      function queryTranslinkApi(tLUrl, tLParams) {
+        var tLParams = (typeof tLParams !== 'undefined') ?  tLParams : {};
+        tLParams.apiKey = tl_api_key;
+        return axios.get(
+          'https://crossorigin.me/' + tLUrl, {
+          params: tLParams,
+          headers: {
+            'Accept': 'application/json'
+          }
+        }).then(function(response){
+          var x2js = new X2JS();
+          var jsonObj = x2js.xml_str2json(response.data);
+          return jsonObj;
+        }).catch(function(error){
+          console.log(error);
+        });
+      }
+      // queryTranslinkApi(url).then(function(response) {
+
+      //   return queryTranslinkApi(url2)
+      // }).then(function(response){
+      //   // do something with data
+      //   if (response){ //contains data
+      //     throw Error('intentional_abort')
+      //   }
+      // }).catch(function(error))
+
+      function calculateAndDisplayRoute(directionsService, directionsDisplay, departTime, routeList) {
+        if (departTime === undefined) departTime = new Date();
+        if (routeList === undefined) routeList = [];
+
+        var epochDepart = departTime.getTime() / 1000;
+        var userOrgin = document.getElementById('start').value.replace(" ", "+");
+        var userDestination = document.getElementById('end').value.replace(" ", "+");
+
+        var mapParams = {
+          origin: userOrgin,
+          destination: userDestination,
+          departure_time: epochDepart,
+          mode: "transit",
+          alternatives: "true",
+          key: "AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY",
+        }
+
+        // Alternate Axios Code
+        // axios.get("https://crossorigin.me/https://maps.googleapis.com/maps/api/directions/json", {
+        //   params: mapParams
+        // }).then(function(response) {
+        //   console.log(response);
+        // }).catch(function(error){
+        //   console.log(error);
+        // });
+
+        directionsService.route({
+          origin: document.getElementById('start').value,
+          destination: document.getElementById('end').value,
+          travelMode: 'TRANSIT',
+          transitOptions: {
+            // departureTime: new Date()
+            // departureTime: new Date(2016, 11, 2, 7, 0, 0, 0)
+            departureTime: departTime
+
+          },
+          provideRouteAlternatives: true
+        }, function(response, status) {
+          if (status === 'OK') {
+            for (var i = 0; i < response.routes.length; i++) {
+              new google.maps.DirectionsRenderer({
+                map: map,
+                directions: response,
+                routeIndex: i
+              });
+              directionsDisplay.setDirections(response);
+            }
+            parseRoutes(response, routeList);
+          } else {
+            console.log('Directions request failed due to ' + status);
+          }
+        });
+      }
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4BkkqZ8fH08EVBPgQQ0GRBNG0dQxZFNY&callback=initMap">
+    </script>
+    <div id="directions">
+      <input id="year" value="2016" />
+      <input id="month" value="10" />
+      <input id="day" value="01" />
+      <input id="hour" value="20" />
+      <input id="min" value="00" />
+      <br />
+      Next how many hours?
+      <input id="nexthours" value="2" />
+      <input id="mininterval" value="10" />
+      <div id="dirout">
+        Directions output here:
+        <br />
+        <table id="routeoutput">
+          <tr>
+            <td>Routes</td>
+            <td>Start Time</td>
+            <td>End Time</td>
+            <td>Total Time</td>
+            <td>Transit Start Time</td>
+            <td>Transit End Time</td>
+            <td>Total Transit</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
